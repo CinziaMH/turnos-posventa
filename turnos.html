@@ -372,10 +372,12 @@ function armarTipos() {
   var v = estado.vehiculo;
   var z = $('zonaTipos'); z.innerHTML = '';
   TIPOS.forEach(function (t) {
-    var apagada = false, extra = '';
+    var apagada = false, extra = '', precioForzado = '';
     if (t.clave === 'Service 6 meses' && v) {
-      if (v.historial && v.historial.some(function (h) { return h.tipo.toLowerCase().indexOf('6 meses') !== -1; })) {
-        apagada = true; extra = ' Ya realizado ✔';
+      if (v.service6mHecho || (v.historial && v.historial.some(function (h) { return h.tipo.toLowerCase().indexOf('6 meses') !== -1; }))) {
+        apagada = true; extra = ' Ya realizado ✔'; precioForzado = 'REALIZADO';
+      } else if (v.service6mVencido) {
+        apagada = true; extra = ' Caducado: pasó el plazo desde la entrega de tu unidad. Te recomendamos el control anual.'; precioForzado = 'CADUCADO';
       } else if (v.puedeService6m && v.diasParaExtender) {
         extra = ' Te quedan ' + v.diasParaExtender + ' días para extender la garantía.';
       }
@@ -386,6 +388,7 @@ function armarTipos() {
     var precio = t.precio;
     if (t.clave === 'Control anual') precio = (estado.cfg && estado.cfg.precioControlAnual && estado.cfg.precioControlAnual !== 'A confirmar') ? estado.cfg.precioControlAnual : 'CON COSTO';
     if (t.clave === 'Garantia') precio = (v && v.enGarantia === false) ? 'A REVISAR' : 'EN GARANTÍA';
+    if (precioForzado) precio = precioForzado;
     var d = document.createElement('div');
     d.className = 'opcion' + (apagada ? ' apagada' : '');
     var durDias = estado.cfg ? estado.cfg.duraciones[t.dur] : 1;

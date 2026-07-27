@@ -97,6 +97,8 @@
   .wa-mini{border:none;background:#E5EFE7;color:#1F7A44;border-radius:7px;font-size:11px;font-weight:700;padding:4px 8px;cursor:pointer}
   .sem-punto{width:16px;height:16px;border-radius:50%;display:inline-block;border:2px solid #fff;box-shadow:0 0 0 1px var(--linea);cursor:pointer;vertical-align:middle;flex-shrink:0}
   .celda-notas{max-width:240px;overflow:hidden;text-overflow:ellipsis;cursor:pointer}
+  .celda-serv{cursor:pointer}
+  .celda-serv:hover{background:#F0E9DA !important}
 
   .panel-wa{background:#fff;border:1px solid var(--linea);border-left:4px solid #25D366;border-radius:14px;padding:16px;margin-top:16px}
   .panel-wa h4{font-size:13px;text-transform:uppercase;letter-spacing:.08em;color:var(--gris);margin-bottom:12px}
@@ -618,6 +620,25 @@ function editarNotas(v) {
     if (r.ok) { v.notas = n; pintarClientes(); avisar('Notas guardadas.'); } else avisar(r.error);
   });
 }
+function marcarService(v, tipo) {
+  var nombre = tipo === 'anual' ? 'control anual' : 'service de 6 meses';
+  var hecho = tipo === 'anual' ? v.controlAnualFecha : (v.service6mFecha || v.service6mHecho);
+  if (hecho) {
+    if (!confirm('¿Destildar el ' + nombre + ' de ' + v.cliente + '? Se borra ese registro del historial.')) return;
+    avisar('Guardando…');
+    api({ accion: 'adminService', orden: v.orden, tipo: tipo, marcar: false }).then(function (r) {
+      if (r.ok) { avisar('Destildado.'); cargar(); } else avisar(r.error);
+    });
+  } else {
+    var f = prompt('¿Qué día se hizo el ' + nombre + ' de ' + v.cliente + '? (AAAA-MM-DD)', hoyIso());
+    if (f === null) return;
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(f.trim())) { avisar('La fecha tiene que ser AAAA-MM-DD, por ejemplo ' + hoyIso()); return; }
+    avisar('Guardando…');
+    api({ accion: 'adminService', orden: v.orden, tipo: tipo, marcar: true, fecha: f.trim() }).then(function (r) {
+      if (r.ok) { avisar('Tildado ✔ — se recalcula la garantía.'); cargar(); } else avisar(r.error);
+    });
+  }
+}
 
 function pintarClientes() {
   if (!datos) return;
@@ -658,20 +679,25 @@ function pintarClientes() {
       var s6 = v.service6mFecha ? '<span class="estado-t g-ok">✔ ' + fechaBonita(v.service6mFecha) + '</span>'
         : v.puedeService6m ? '<span class="estado-t g-alerta">PENDIENTE</span>' : '—';
       html += '<tr><td style="text-align:center"><span class="cont-sem" data-s="' + i + '">' + puntoSem(v) + '</span></td>' +
-        '<td>' + gar + '</td><td>' + s6 + '</td><td>' + (v.controlAnualFecha ? '✔ ' + fechaBonita(v.controlAnualFecha) : '—') + '</td>' +
+        '<td>' + gar + '</td>' +
+        '<td class="celda-serv" data-t="s6" data-v="' + i + '" title="Clic para tildar o destildar">' + s6 + '</td>' +
+        '<td class="celda-serv" data-t="anual" data-v="' + i + '" title="Clic para tildar o destildar">' + (v.controlAnualFecha ? '<span class="estado-t g-ok">✔ ' + fechaBonita(v.controlAnualFecha) + '</span>' : '—') + '</td>' +
         '<td>' + (v.orden || '—') + '</td><td><b>' + v.cliente + '</b></td><td>' + (v.producto || '—') + '</td><td>' + (v.vehiculo || '—') +
         '</td><td>' + (v.anio || '—') + '</td><td>' + fechaBonita(v.fechaCompra) + '</td><td>' + fechaBonita(v.fechaEntrega) +
         '</td><td>' + (v.telefono || '—') + '</td><td>' + (v.vendedor || '—') + '</td>' +
         '<td class="celda-notas" data-n="' + i + '" title="' + (v.notas ? v.notas.replace(/"/g, '&quot;') + ' — ' : '') + 'clic para editar">' + (v.notas ? '📝 ' + v.notas : '—') + '</td>' +
         '<td><button class="wa-mini" data-i="' + i + '">💬</button></td></tr>';
     });
-    html += '</table></div><p style="font-size:12px;color:var(--gris);margin-top:10px">Mostrando ' + lista.length + ' de ' + datos.vehiculos.length + ' · Garantía y services calculados con la fecha de entrega y el historial · El punto de color es el estado del cliente: clic para cambiarlo · Clic en las notas para editarlas.</p>';
+    html += '</table></div><p style="font-size:12px;color:var(--gris);margin-top:10px">Mostrando ' + lista.length + ' de ' + datos.vehiculos.length + ' · Garantía y services calculados con la fecha de entrega y el historial · El punto de color es el estado del cliente: clic para cambiarlo · Clic en Serv. 6m o Ctrl. anual para tildarlos como realizados · Clic en las notas para editarlas.</p>';
     z.innerHTML = html;
     z.querySelectorAll('.cont-sem').forEach(function (b) {
       b.addEventListener('click', function () { cambiarSem(lista[Number(b.getAttribute('data-s'))]); });
     });
     z.querySelectorAll('.celda-notas').forEach(function (b) {
       b.addEventListener('click', function () { editarNotas(lista[Number(b.getAttribute('data-n'))]); });
+    });
+    z.querySelectorAll('.celda-serv').forEach(function (b) {
+      b.addEventListener('click', function () { marcarService(lista[Number(b.getAttribute('data-v'))], b.getAttribute('data-t')); });
     });
     z.querySelectorAll('.wa-mini').forEach(function (b) {
       b.addEventListener('click', function () {

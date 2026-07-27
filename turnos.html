@@ -1,0 +1,656 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Turnos de Posventa — Cinzia</title>
+<style>
+  :root{
+    --carbon:#333333; --naranja:#CB591D; --naranja2:#F05C36; --arena:#F5F1EA;
+    --gris:#8A8378; --linea:#E4DCCE; --ok:#3E7C4F; --alerta:#B7791F; --rojo:#B3402A;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;font-family:'Segoe UI',system-ui,-apple-system,sans-serif}
+  body{background:var(--arena);color:var(--carbon);min-height:100vh}
+  .contenedor{max-width:480px;margin:0 auto;min-height:100vh;display:flex;flex-direction:column;background:var(--arena)}
+
+  .cab{background:var(--carbon);color:#fff;padding:20px 20px 16px}
+  .cab .marca{display:flex;align-items:center;gap:10px}
+  .cab .icono{width:34px;height:34px;border-radius:50%;background:var(--naranja);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:17px;color:#fff}
+  .cab .nombre{font-size:19px;font-weight:700;letter-spacing:.04em}
+  .cab .nombre span{color:var(--naranja2)}
+  .cab .sub{margin-top:6px;font-size:12.5px;color:#cfc9bd;letter-spacing:.06em;text-transform:uppercase}
+  .migas{display:flex;gap:6px;padding:12px 20px 0}
+  .miga{flex:1;height:4px;border-radius:2px;background:#DDD5C4}
+  .miga.hecha{background:var(--naranja)}
+
+  .cuerpo{padding:18px 20px 40px;flex:1}
+  h2.paso{font-size:20px;font-weight:700;margin-bottom:4px}
+  p.ayuda{font-size:13.5px;color:var(--gris);margin-bottom:16px;line-height:1.45}
+
+  .campo{margin-bottom:12px}
+  .campo label{display:block;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--gris);margin-bottom:5px}
+  .campo input,.campo textarea,.campo select{width:100%;border:1.5px solid var(--linea);border-radius:12px;padding:12px 14px;font-size:16px;background:#fff;color:var(--carbon)}
+  .campo textarea{min-height:90px;resize:vertical}
+
+  .boton{display:block;width:100%;border:none;border-radius:14px;background:var(--naranja);color:#fff;font-size:16px;font-weight:700;padding:15px;cursor:pointer;text-align:center}
+  .boton:disabled{opacity:.5;cursor:default}
+  .boton.secundario{background:transparent;color:var(--carbon);border:1.5px solid var(--carbon);font-weight:600}
+  .enlace{display:block;text-align:center;font-size:13.5px;color:var(--gris);margin-top:14px;text-decoration:underline;cursor:pointer;background:none;border:none;width:100%}
+
+  .tarjeta{background:#fff;border:1px solid var(--linea);border-radius:16px;padding:16px;margin-bottom:12px}
+  .tarjeta .etiqueta{font-size:11px;text-transform:uppercase;letter-spacing:.1em;color:var(--gris)}
+  .tarjeta .grande{font-size:17px;font-weight:700;margin:2px 0 0}
+  .tarjeta.clic{cursor:pointer}
+  .tarjeta.clic:hover{border-color:var(--naranja)}
+
+  .aviso{border-radius:14px;padding:12px 14px;margin-bottom:10px;font-size:13.5px;line-height:1.45;display:flex;gap:10px;align-items:flex-start}
+  .aviso.alerta{background:#F7EBD4;border:1px solid #EAD7A8}
+  .aviso.ok{background:#E5EFE7;border:1px solid #CBE0D0}
+  .aviso.info{background:#EFEAE0;border:1px solid var(--linea)}
+  .aviso.rojo{background:#F6E2DC;border:1px solid #EACFC7}
+
+  .chip{display:inline-block;font-size:12px;font-weight:700;padding:4px 10px;border-radius:20px;margin:2px 4px 2px 0}
+  .chip.ok{background:#E5EFE7;color:var(--ok)}
+  .chip.alerta{background:#F7EBD4;color:var(--alerta)}
+  .chip.neutro{background:#EFEAE0;color:var(--gris)}
+
+  .dato-fila{display:flex;justify-content:space-between;gap:10px;padding:7px 0;border-bottom:1px dashed var(--linea);font-size:14px}
+  .dato-fila:last-child{border-bottom:none}
+  .dato-fila .k{color:var(--gris);flex-shrink:0}
+  .dato-fila .v{font-weight:600;text-align:right}
+
+  .opcion{display:flex;gap:12px;align-items:flex-start;background:#fff;border:1.5px solid var(--linea);border-radius:16px;padding:14px;margin-bottom:10px;cursor:pointer}
+  .opcion.elegida{border-color:var(--naranja);box-shadow:0 0 0 3px rgba(203,89,29,.15)}
+  .opcion.apagada{opacity:.5;cursor:default}
+  .opcion .icoTipo{width:40px;height:40px;border-radius:12px;background:var(--arena);display:flex;align-items:center;justify-content:center;font-size:19px;flex-shrink:0}
+  .opcion .tit{font-size:15px;font-weight:700}
+  .opcion .det{font-size:12.5px;color:var(--gris);margin-top:2px;line-height:1.4}
+  .opcion .precio{margin-left:auto;font-size:11px;font-weight:800;white-space:nowrap;padding-top:2px}
+  .opcion .precio.gratis{color:var(--ok)}
+  .opcion .precio.pago{color:var(--naranja)}
+
+  .sucursal{position:relative;background:#fff;border:1.5px solid var(--linea);border-radius:16px;padding:16px;margin-bottom:10px;cursor:pointer}
+  .sucursal.elegida{border-color:var(--naranja);box-shadow:0 0 0 3px rgba(203,89,29,.15)}
+  .sucursal.apagada{opacity:.55;cursor:default;background:#F2EDE3}
+  .sucursal .nom{font-size:16px;font-weight:700}
+  .sucursal .dir{font-size:12.5px;color:var(--gris);margin-top:2px}
+  .sucursal .estado-suc{position:absolute;top:14px;right:14px;font-size:11px;font-weight:700;padding:4px 10px;border-radius:20px}
+  .sucursal .estado-suc.abierto{background:#E5EFE7;color:var(--ok)}
+  .sucursal .estado-suc.pronto{background:#EFEAE0;color:var(--gris)}
+
+  .cal{background:#fff;border:1px solid var(--linea);border-radius:16px;padding:14px;margin-top:14px}
+  .cal .mes{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+  .cal .mes b{font-size:15px;text-transform:capitalize}
+  .cal .flecha{width:32px;height:32px;border-radius:50%;border:1px solid var(--linea);background:#fff;cursor:pointer;font-size:15px}
+  .cal table{width:100%;border-collapse:collapse;text-align:center}
+  .cal th{font-size:10.5px;text-transform:uppercase;color:var(--gris);padding-bottom:6px}
+  .cal td{padding:3px}
+  .cal .dia{width:100%;aspect-ratio:1;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:13.5px;color:#C9C1B2;border:none;background:transparent}
+  .cal .dia.libre{background:var(--arena);color:var(--carbon);font-weight:700;cursor:pointer;border:1px solid var(--linea)}
+  .cal .dia.elegido{background:var(--naranja);color:#fff;border-color:var(--naranja)}
+  .nota-estadia{display:flex;gap:8px;align-items:flex-start;background:#EFEAE0;border-radius:12px;padding:10px 12px;font-size:12.5px;color:#6b6457;margin-top:12px;line-height:1.4}
+
+  .subida{border:2px dashed #CDC4B2;border-radius:14px;background:#FBF9F4;padding:16px;text-align:center;cursor:pointer}
+  .subida .txtSub{font-size:13.5px;font-weight:600;margin-top:4px}
+  .subida .subSub{font-size:11.5px;color:var(--gris);margin-top:2px}
+  .miniaturas{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+  .mini{width:64px;height:64px;border-radius:10px;position:relative;border:1px solid var(--linea);overflow:visible;background:#EFEAE0;display:flex;align-items:center;justify-content:center;font-size:20px}
+  .mini img{width:100%;height:100%;object-fit:cover;border-radius:10px}
+  .mini .quitar{position:absolute;top:-6px;right:-6px;width:20px;height:20px;border-radius:50%;background:var(--carbon);color:#fff;font-size:11px;display:flex;align-items:center;justify-content:center;cursor:pointer;border:none}
+
+  .exito{display:flex;flex-direction:column;align-items:center;text-align:center;padding-top:30px}
+  .exito .tilde{width:74px;height:74px;border-radius:50%;background:#E5EFE7;color:var(--ok);display:flex;align-items:center;justify-content:center;font-size:34px;margin-bottom:16px}
+
+  .cargando{display:flex;align-items:center;justify-content:center;gap:10px;padding:30px;color:var(--gris);font-size:14px}
+  .rueda{width:20px;height:20px;border:3px solid var(--linea);border-top-color:var(--naranja);border-radius:50%;animation:girar 1s linear infinite}
+  @keyframes girar{to{transform:rotate(360deg)}}
+  .error-caja{background:#F6E2DC;border:1px solid #EACFC7;color:var(--rojo);border-radius:12px;padding:12px 14px;font-size:13.5px;margin-bottom:12px;display:none}
+  .oculto{display:none}
+  .pie{padding:14px 20px 24px;text-align:center;font-size:11.5px;color:var(--gris)}
+</style>
+</head>
+<body>
+<div class="contenedor">
+  <div class="cab">
+    <div class="marca"><div class="icono">C</div><div class="nombre">CINZI<span>A</span></div></div>
+    <div class="sub" id="subtitulo">Turnos de posventa</div>
+  </div>
+  <div class="migas" id="migas"></div>
+  <div class="cuerpo">
+    <div class="error-caja" id="cajaError"></div>
+
+    <!-- PASO 1: BUSCAR -->
+    <section id="s-buscar">
+      <h2 class="paso">Encontrá tu vehículo</h2>
+      <p class="ayuda">Ingresá cualquiera de estos datos y traemos la ficha de tu unidad: historial, services y garantía.</p>
+      <div class="campo">
+        <label>Patente, N° de orden, apellido o teléfono</label>
+        <input id="entradaBusqueda" placeholder="Ej.: 241009 o García" autocomplete="off">
+      </div>
+      <button class="boton" id="botonBuscar">Buscar mi vehículo</button>
+      <button class="enlace" id="enlaceManual">No encuentro mi vehículo / soy nuevo cliente</button>
+      <div id="zonaResultados"></div>
+    </section>
+
+    <!-- PASO 1B: DATOS MANUALES -->
+    <section id="s-manual" class="oculto">
+      <h2 class="paso">Contanos sobre tu unidad</h2>
+      <p class="ayuda">Completá tus datos y seguimos con el turno. Después nosotros la ubicamos en el sistema.</p>
+      <div class="campo"><label>Nombre y apellido</label><input id="manNombre"></div>
+      <div class="campo"><label>Teléfono (WhatsApp)</label><input id="manTelefono" inputmode="tel" placeholder="Ej.: 351 555-0000"></div>
+      <div class="campo"><label>Tipo de unidad</label>
+        <select id="manProducto">
+          <option value="">Elegí una opción…</option>
+          <option>Motorhome</option><option>Camper</option><option>Furgón</option>
+          <option>Pegasso</option><option>Xplorer</option><option>Casilla</option><option>Otro</option>
+        </select>
+      </div>
+      <div class="campo"><label>N° de orden de producción (si lo sabés)</label><input id="manOrden"></div>
+      <button class="boton" id="botonManual">Continuar</button>
+      <button class="enlace" data-volver="s-buscar">← Volver a buscar</button>
+    </section>
+
+    <!-- PASO 2: FICHA -->
+    <section id="s-ficha" class="oculto">
+      <div id="zonaFicha"></div>
+      <button class="boton" id="botonPedirTurno">Pedir un turno</button>
+      <button class="enlace" data-volver="s-buscar">Este no es mi vehículo — volver a buscar</button>
+    </section>
+
+    <!-- PASO 3: TIPO -->
+    <section id="s-tipo" class="oculto">
+      <h2 class="paso">Elegí el tipo de turno</h2>
+      <p class="ayuda" id="ayudaTipo">Según la ficha de tu unidad, te marcamos lo que te corresponde.</p>
+      <div id="zonaTipos"></div>
+      <div id="zonaGarantia" class="oculto"></div>
+      <div class="campo" style="margin-top:16px">
+        <label id="rotuloDetalle">Contanos qué notaste en la unidad</label>
+        <textarea id="entradaDetalle" placeholder="Cuanto más detalle, mejor podemos preparar el trabajo."></textarea>
+      </div>
+      <div class="campo" id="zonaSubida">
+        <label>Fotos o videos</label>
+        <div class="subida" id="cajaSubida">
+          <div style="font-size:22px">📷</div>
+          <div class="txtSub">Tocá para agregar fotos o videos</div>
+          <div class="subSub" id="notaSubida">Nos ayudan a cotizar y preparar el trabajo · hasta 6 archivos</div>
+        </div>
+        <input type="file" id="entradaArchivos" accept="image/*,video/*" multiple class="oculto">
+        <div class="miniaturas" id="zonaMiniaturas"></div>
+      </div>
+      <button class="boton" id="botonTipoSeguir">Continuar</button>
+      <button class="enlace" id="volverDeTipo">← Volver</button>
+    </section>
+
+    <!-- PASO 4: SUCURSAL Y FECHA -->
+    <section id="s-fecha" class="oculto">
+      <h2 class="paso">Elegí sucursal y día de ingreso</h2>
+      <div id="zonaSucursales"></div>
+      <div id="zonaCalendario" class="oculto">
+        <div class="cal">
+          <div class="mes"><button class="flecha" id="mesAntes">‹</button><b id="tituloMes"></b><button class="flecha" id="mesDespues">›</button></div>
+          <table id="tablaCal"></table>
+        </div>
+        <div class="nota-estadia" id="notaEstadia"></div>
+      </div>
+      <div class="cargando oculto" id="cargandoDias"><div class="rueda"></div> Buscando días disponibles…</div>
+      <button class="boton" id="botonFechaSeguir" style="margin-top:14px" disabled>Continuar</button>
+      <button class="enlace" data-volver="s-tipo">← Volver</button>
+    </section>
+
+    <!-- PASO 5: CONFIRMAR -->
+    <section id="s-confirmar" class="oculto">
+      <h2 class="paso">Revisá tu pedido</h2>
+      <p class="ayuda">Confirmá tus datos de contacto para avisarte por WhatsApp.</p>
+      <div class="tarjeta" id="zonaResumen"></div>
+      <div class="campo"><label>Nombre y apellido</label><input id="conNombre"></div>
+      <div class="campo"><label>Teléfono (WhatsApp)</label><input id="conTelefono" inputmode="tel"></div>
+      <button class="boton" id="botonEnviar">Enviar pedido de turno</button>
+      <button class="enlace" data-volver="s-fecha">← Volver</button>
+    </section>
+
+    <!-- PASO 6: ÉXITO -->
+    <section id="s-exito" class="oculto">
+      <div class="exito">
+        <div class="tilde">✓</div>
+        <h2 class="paso" id="tituloExito">¡Pedido enviado!</h2>
+        <p class="ayuda" style="margin-top:8px">Recibimos tu pedido de turno. En breve te lo <b>confirmamos por WhatsApp</b>.</p>
+      </div>
+      <div class="tarjeta" id="resumenExito"></div>
+      <button class="boton secundario" onclick="location.reload()">Pedir otro turno</button>
+    </section>
+  </div>
+  <div class="pie">Cinzia Vehículos · Posventa · Córdoba: Alcira Arias 191, Malvinas Argentinas · Buenos Aires: Riobamba 5487, El Triángulo</div>
+</div>
+
+<script>
+// ================== CONFIGURACIÓN ==================
+var API_URL = 'https://script.google.com/macros/s/AKfycbwb9hy-cblis2wl_YRUI90dinaFd9hCHzcYgHql0_z2-6IYSjW_C8uKSYvZOayNd6Ed3w/exec';
+// ===================================================
+
+var SUCURSALES = [
+  { nombre: 'Cordoba', muestra: 'Córdoba', dir: 'Alcira Arias 191, Malvinas Argentinas', activa: true },
+  { nombre: 'Buenos Aires', muestra: 'Buenos Aires', dir: 'Riobamba 5487, El Triángulo', activa: true },
+  { nombre: 'Salta', muestra: 'Salta', dir: 'Muy pronto', activa: false },
+  { nombre: 'Bariloche', muestra: 'Bariloche', dir: 'Muy pronto', activa: false }
+];
+
+var TIPOS = [
+  { clave: 'Service 6 meses', icono: '🔧', titulo: 'Service de 6 meses', precio: 'SIN CARGO', clasePrecio: 'gratis', dur: 'service6m',
+    det: 'Control de mantenimiento completo. Extiende tu garantía 6 meses más.' },
+  { clave: 'Control anual', icono: '📋', titulo: 'Control anual', precio: '', clasePrecio: 'pago', dur: 'controlAnual',
+    det: 'Revisión general anual: estanqueidad, gas, agua, electricidad.' },
+  { clave: 'Reparacion / mejora', icono: '🛠️', titulo: 'Reparación o mejora', precio: 'A COTIZAR', clasePrecio: '', dur: 'reparacion',
+    det: 'Contanos qué hay que hacerle y lo preparamos antes de que traigas la unidad.' },
+  { clave: 'Garantia', icono: '🛡️', titulo: 'Solicitud de garantía', precio: '', clasePrecio: 'gratis', dur: 'garantia',
+    det: 'Mirá qué cubre la garantía y contanos el problema.' }
+];
+
+var estado = {
+  cfg: null, vehiculo: null, manual: null, tipo: null,
+  adjuntos: [], sucursal: null, dias: [], diaElegido: null,
+  mesVista: null, duracion: 1
+};
+
+function $(id) { return document.getElementById(id); }
+
+function api(cuerpo) {
+  if (!API_URL) return Promise.reject(new Error('Falta configurar la dirección del sistema (API_URL).'));
+  return fetch(API_URL, { method: 'POST', body: JSON.stringify(cuerpo) })
+    .then(function (r) { return r.json(); });
+}
+
+function mostrarError(msg) {
+  var caja = $('cajaError');
+  caja.textContent = msg;
+  caja.style.display = 'block';
+  setTimeout(function () { caja.style.display = 'none'; }, 6000);
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+var PASOS = ['s-buscar', 's-manual', 's-ficha', 's-tipo', 's-fecha', 's-confirmar', 's-exito'];
+var MIGAS = { 's-buscar': 1, 's-manual': 1, 's-ficha': 2, 's-tipo': 3, 's-fecha': 4, 's-confirmar': 5, 's-exito': 5 };
+function irA(id) {
+  PASOS.forEach(function (p) { $(p).classList.toggle('oculto', p !== id); });
+  var n = MIGAS[id] || 1;
+  var m = $('migas'); m.innerHTML = '';
+  for (var i = 1; i <= 5; i++) {
+    var div = document.createElement('div');
+    div.className = 'miga' + (i <= n ? ' hecha' : '');
+    m.appendChild(div);
+  }
+  window.scrollTo(0, 0);
+}
+
+document.querySelectorAll('[data-volver]').forEach(function (b) {
+  b.addEventListener('click', function () { irA(b.getAttribute('data-volver')); });
+});
+
+function fechaBonita(iso) {
+  if (!iso) return '—';
+  var p = iso.split('-');
+  return p[2] + '/' + p[1] + '/' + p[0];
+}
+function nombrePila(completo) {
+  if (!completo) return '';
+  if (completo.indexOf(',') !== -1) return completo.split(',')[1].trim().split(' ')[0];
+  return completo.split(' ')[0];
+}
+
+// ---------- configuración inicial ----------
+api({ accion: 'inicio' }).then(function (r) { if (r.ok) estado.cfg = r; }).catch(function () {});
+
+// ---------- paso 1: buscar ----------
+$('botonBuscar').addEventListener('click', buscarVehiculo);
+$('entradaBusqueda').addEventListener('keydown', function (e) { if (e.key === 'Enter') buscarVehiculo(); });
+$('enlaceManual').addEventListener('click', function () { irA('s-manual'); });
+
+function buscarVehiculo() {
+  var q = $('entradaBusqueda').value.trim();
+  if (q.length < 3) { mostrarError('Escribí al menos 3 caracteres.'); return; }
+  var zona = $('zonaResultados');
+  zona.innerHTML = '<div class="cargando"><div class="rueda"></div> Buscando tu vehículo…</div>';
+  api({ accion: 'buscar', consulta: q }).then(function (r) {
+    if (!r.ok) { zona.innerHTML = ''; mostrarError(r.error || 'No pudimos buscar.'); return; }
+    if (!r.resultados.length) {
+      zona.innerHTML = '<div class="aviso info">🔍 <span>No encontramos tu vehículo con ese dato. Probá con otro (N° de orden, apellido, teléfono) o tocá <b>"No encuentro mi vehículo"</b> y seguimos igual.</span></div>';
+      return;
+    }
+    zona.innerHTML = '';
+    r.resultados.forEach(function (v) {
+      var t = document.createElement('div');
+      t.className = 'tarjeta clic';
+      t.style.borderLeft = '4px solid var(--naranja)';
+      t.innerHTML = '<div class="etiqueta">Resultado de la búsqueda</div>' +
+        '<div class="grande">' + v.cliente + '</div>' +
+        '<div style="font-size:13px;color:var(--gris);margin-top:2px">' + [v.producto, v.vehiculo, v.orden ? 'Orden ' + v.orden : ''].filter(Boolean).join(' · ') + '</div>' +
+        (v.fechaEntrega ? '<div style="margin-top:8px"><span class="chip ok">Entregado ' + fechaBonita(v.fechaEntrega) + '</span></div>' : '');
+      t.addEventListener('click', function () { elegirVehiculo(v); });
+      zona.appendChild(t);
+    });
+  }).catch(function (e) { zona.innerHTML = ''; mostrarError(e.message); });
+}
+
+function elegirVehiculo(v) {
+  estado.vehiculo = v; estado.manual = null;
+  var z = $('zonaFicha');
+  var html = '<div class="tarjeta"><div class="etiqueta">Tu vehículo</div>' +
+    '<div class="grande">' + [v.producto, v.vehiculo].filter(Boolean).join(' · ') + '</div>' +
+    '<div class="dato-fila"><span class="k">Cliente</span><span class="v">' + v.cliente + '</span></div>' +
+    (v.orden ? '<div class="dato-fila"><span class="k">N° de orden</span><span class="v">' + v.orden + '</span></div>' : '') +
+    (v.fechaEntrega ? '<div class="dato-fila"><span class="k">Fecha de entrega</span><span class="v">' + fechaBonita(v.fechaEntrega) + '</span></div>' : '') +
+    (v.garantiaHasta ? '<div class="dato-fila"><span class="k">Garantía</span><span class="v" style="color:' + (v.enGarantia ? 'var(--ok)' : 'var(--rojo)') + '">' + (v.enGarantia ? 'Vigente hasta ' + fechaBonita(v.garantiaHasta) : 'Finalizó el ' + fechaBonita(v.garantiaHasta)) + '</span></div>' : '') +
+    '</div>';
+  (v.avisos || []).forEach(function (a) {
+    var icono = a.nivel === 'ok' ? '🛡️' : a.nivel === 'alerta' ? '⚠️' : 'ℹ️';
+    html += '<div class="aviso ' + a.nivel + '">' + icono + ' <span>' + a.texto + '</span></div>';
+  });
+  html += '<div class="aviso info">🛡️ <span>Recordá: la garantía es válida <b>solo con service oficial Cinzia</b>. Intervenciones de terceros la anulan.</span></div>';
+  if (v.historial && v.historial.length) {
+    html += '<div class="tarjeta"><div class="etiqueta">Historial en posventa</div>';
+    v.historial.forEach(function (h) {
+      html += '<div class="dato-fila"><span class="k">' + fechaBonita(h.fecha) + (h.sucursal ? ' · ' + h.sucursal : '') + '</span><span class="v">' + h.tipo + (h.detalle ? ' — ' + h.detalle : '') + '</span></div>';
+    });
+    html += '</div>';
+  }
+  z.innerHTML = html;
+  irA('s-ficha');
+}
+
+// ---------- paso 1b: manual ----------
+$('botonManual').addEventListener('click', function () {
+  var nombre = $('manNombre').value.trim(), tel = $('manTelefono').value.trim(), prod = $('manProducto').value;
+  if (!nombre || !tel || !prod) { mostrarError('Completá nombre, teléfono y tipo de unidad.'); return; }
+  estado.manual = { cliente: nombre, telefono: tel, producto: prod, orden: $('manOrden').value.trim() };
+  estado.vehiculo = null;
+  armarTipos(); irA('s-tipo');
+});
+
+$('botonPedirTurno').addEventListener('click', function () { armarTipos(); irA('s-tipo'); });
+
+// ---------- paso 3: tipo ----------
+function armarTipos() {
+  var v = estado.vehiculo;
+  var z = $('zonaTipos'); z.innerHTML = '';
+  TIPOS.forEach(function (t) {
+    var apagada = false, extra = '';
+    if (t.clave === 'Service 6 meses' && v) {
+      if (v.historial && v.historial.some(function (h) { return h.tipo.toLowerCase().indexOf('6 meses') !== -1; })) {
+        apagada = true; extra = ' Ya realizado ✔';
+      } else if (v.puedeService6m && v.diasParaExtender) {
+        extra = ' Te quedan ' + v.diasParaExtender + ' días para extender la garantía.';
+      }
+    }
+    if (t.clave === 'Garantia' && v && v.enGarantia === false) {
+      extra = ' Tu unidad está fuera de garantía — igual podemos revisarla como reparación.';
+    }
+    var precio = t.precio;
+    if (t.clave === 'Control anual') precio = (estado.cfg && estado.cfg.precioControlAnual && estado.cfg.precioControlAnual !== 'A confirmar') ? estado.cfg.precioControlAnual : 'CON COSTO';
+    if (t.clave === 'Garantia') precio = (v && v.enGarantia === false) ? 'A REVISAR' : 'EN GARANTÍA';
+    var d = document.createElement('div');
+    d.className = 'opcion' + (apagada ? ' apagada' : '');
+    var durDias = estado.cfg ? estado.cfg.duraciones[t.dur] : 1;
+    d.innerHTML = '<div class="icoTipo">' + t.icono + '</div>' +
+      '<div><div class="tit">' + t.titulo + '</div><div class="det">' + t.det + extra + ' Estadía aprox.: ' + durDias + ' día' + (durDias > 1 ? 's' : '') + '.</div></div>' +
+      '<div class="precio ' + t.clasePrecio + '">' + precio + '</div>';
+    if (!apagada) d.addEventListener('click', function () { elegirTipo(t, d); });
+    z.appendChild(d);
+  });
+  actualizarZonaTipo();
+}
+
+function elegirTipo(t, elemento) {
+  estado.tipo = t;
+  document.querySelectorAll('#zonaTipos .opcion').forEach(function (o) { o.classList.remove('elegida'); });
+  elemento.classList.add('elegida');
+  actualizarZonaTipo();
+}
+
+function actualizarZonaTipo() {
+  var t = estado.tipo;
+  var esGarantia = t && t.clave === 'Garantia';
+  var esReparacion = t && t.clave === 'Reparacion / mejora';
+  var esControl = t && t.clave === 'Control anual';
+  var zg = $('zonaGarantia');
+  if (esControl && estado.cfg && estado.cfg.controlAnualDetalle && estado.cfg.controlAnualDetalle.length) {
+    var htmlC = '<div class="tarjeta" style="border-left:4px solid var(--naranja)"><div class="etiqueta" style="color:var(--naranja)">✓ Qué incluye el control anual</div><div style="font-size:13.5px;line-height:1.7;margin-top:6px">' +
+      estado.cfg.controlAnualDetalle.map(function (x) { return '· ' + x; }).join('<br>') + '</div></div>';
+    zg.innerHTML = htmlC;
+    zg.classList.remove('oculto');
+  } else if (esGarantia && estado.cfg) {
+    var v = estado.vehiculo;
+    var html = '';
+    if (estado.cfg.garantiaAviso) html += '<div class="aviso rojo">⚠️ <span><b>Importante:</b> ' + estado.cfg.garantiaAviso + '</span></div>';
+    html += '<div class="tarjeta" style="border-left:4px solid var(--ok)"><div class="etiqueta" style="color:var(--ok)">✓ La garantía cubre</div><div style="font-size:13.5px;line-height:1.7;margin-top:6px">' +
+      estado.cfg.garantiaCubre.map(function (x) { return '· ' + x; }).join('<br>') + '</div></div>';
+    html += '<div class="tarjeta" style="border-left:4px solid var(--rojo)"><div class="etiqueta" style="color:var(--rojo)">✗ No cubre</div><div style="font-size:13.5px;line-height:1.7;margin-top:6px">' +
+      estado.cfg.garantiaNoCubre.map(function (x) { return '· ' + x; }).join('<br>') + '</div></div>';
+    zg.innerHTML = html;
+    zg.classList.remove('oculto');
+  } else {
+    zg.classList.add('oculto');
+  }
+  $('rotuloDetalle').textContent = esGarantia ? 'Contanos el problema con el mayor detalle posible'
+    : esReparacion ? 'Contanos qué hay que hacerle a la unidad'
+    : 'Contanos qué notaste en la unidad (opcional)';
+  $('zonaSubida').style.display = (esGarantia || esReparacion) ? 'block' : 'none';
+}
+
+$('volverDeTipo').addEventListener('click', function () {
+  irA(estado.vehiculo ? 's-ficha' : 's-manual');
+});
+
+// adjuntos
+$('cajaSubida').addEventListener('click', function () { $('entradaArchivos').click(); });
+$('entradaArchivos').addEventListener('change', function () {
+  var max = (estado.cfg && estado.cfg.maxAdjuntos) || 6;
+  var archivos = Array.prototype.slice.call(this.files);
+  archivos.forEach(function (a) {
+    if (estado.adjuntos.length >= max) return;
+    if (a.type.indexOf('video') === 0 && a.size > 25 * 1024 * 1024) {
+      mostrarError('El video "' + a.name + '" supera los 25 MB. Mandá uno más corto.');
+      return;
+    }
+    procesarArchivo(a);
+  });
+  this.value = '';
+});
+
+function procesarArchivo(archivo) {
+  if (archivo.type.indexOf('image') === 0) {
+    var lector = new FileReader();
+    lector.onload = function () {
+      var img = new Image();
+      img.onload = function () {
+        var escala = Math.min(1, 1600 / Math.max(img.width, img.height));
+        var lienzo = document.createElement('canvas');
+        lienzo.width = Math.round(img.width * escala);
+        lienzo.height = Math.round(img.height * escala);
+        lienzo.getContext('2d').drawImage(img, 0, 0, lienzo.width, lienzo.height);
+        var datos = lienzo.toDataURL('image/jpeg', 0.8);
+        agregarAdjunto({ nombre: archivo.name.replace(/\.\w+$/, '') + '.jpg', tipo: 'image/jpeg', datos: datos.split(',')[1], vista: datos });
+      };
+      img.src = lector.result;
+    };
+    lector.readAsDataURL(archivo);
+  } else {
+    var lector2 = new FileReader();
+    lector2.onload = function () {
+      agregarAdjunto({ nombre: archivo.name, tipo: archivo.type || 'video/mp4', datos: String(lector2.result).split(',')[1], vista: null });
+    };
+    lector2.readAsDataURL(archivo);
+  }
+}
+
+function agregarAdjunto(a) {
+  estado.adjuntos.push(a);
+  pintarMiniaturas();
+}
+function pintarMiniaturas() {
+  var z = $('zonaMiniaturas'); z.innerHTML = '';
+  estado.adjuntos.forEach(function (a, i) {
+    var d = document.createElement('div');
+    d.className = 'mini';
+    d.innerHTML = (a.vista ? '<img src="' + a.vista + '">' : '🎬') + '<button class="quitar">✕</button>';
+    d.querySelector('.quitar').addEventListener('click', function () {
+      estado.adjuntos.splice(i, 1); pintarMiniaturas();
+    });
+    z.appendChild(d);
+  });
+}
+
+$('botonTipoSeguir').addEventListener('click', function () {
+  if (!estado.tipo) { mostrarError('Elegí un tipo de turno.'); return; }
+  var esGoR = estado.tipo.clave === 'Garantia' || estado.tipo.clave === 'Reparacion / mejora';
+  if (esGoR && !$('entradaDetalle').value.trim()) {
+    mostrarError('Contanos qué hay que hacerle a la unidad, así preparamos el trabajo.');
+    return;
+  }
+  estado.duracion = estado.cfg ? estado.cfg.duraciones[estado.tipo.dur] : 1;
+  armarSucursales();
+  irA('s-fecha');
+});
+
+// ---------- paso 4: sucursal y fecha ----------
+function armarSucursales() {
+  var z = $('zonaSucursales'); z.innerHTML = '';
+  SUCURSALES.forEach(function (s) {
+    var d = document.createElement('div');
+    d.className = 'sucursal' + (s.activa ? '' : ' apagada');
+    d.innerHTML = '<div class="nom">' + s.muestra + '</div><div class="dir">' + s.dir + '</div>' +
+      '<div class="estado-suc ' + (s.activa ? 'abierto">DISPONIBLE' : 'pronto">DESDE DIC 2026') + '</div>';
+    if (s.activa) d.addEventListener('click', function () { elegirSucursal(s, d); });
+    z.appendChild(d);
+  });
+  $('zonaCalendario').classList.add('oculto');
+  $('botonFechaSeguir').disabled = true;
+  estado.sucursal = null; estado.diaElegido = null;
+}
+
+function elegirSucursal(s, elemento) {
+  estado.sucursal = s; estado.diaElegido = null;
+  document.querySelectorAll('#zonaSucursales .sucursal').forEach(function (x) { x.classList.remove('elegida'); });
+  elemento.classList.add('elegida');
+  $('zonaCalendario').classList.add('oculto');
+  $('cargandoDias').classList.remove('oculto');
+  $('botonFechaSeguir').disabled = true;
+  api({ accion: 'disponibilidad', sucursal: s.nombre, duracion: estado.duracion }).then(function (r) {
+    $('cargandoDias').classList.add('oculto');
+    if (!r.ok) { mostrarError(r.error || 'No pudimos consultar la disponibilidad.'); return; }
+    estado.dias = r.dias;
+    if (!r.dias.length) {
+      mostrarError('Por ahora no hay días habilitados en ' + s.muestra + '. Escribinos por WhatsApp y lo coordinamos.');
+      return;
+    }
+    estado.mesVista = r.dias[0].slice(0, 7);
+    pintarCalendario();
+    $('zonaCalendario').classList.remove('oculto');
+  }).catch(function (e) { $('cargandoDias').classList.add('oculto'); mostrarError(e.message); });
+}
+
+var NOMBRES_MES = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+$('mesAntes').addEventListener('click', function () { moverMes(-1); });
+$('mesDespues').addEventListener('click', function () { moverMes(1); });
+function moverMes(delta) {
+  var p = estado.mesVista.split('-').map(Number);
+  var d = new Date(p[0], p[1] - 1 + delta, 1);
+  estado.mesVista = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+  pintarCalendario();
+}
+
+function pintarCalendario() {
+  var p = estado.mesVista.split('-').map(Number);
+  var anio = p[0], mes = p[1];
+  $('tituloMes').textContent = NOMBRES_MES[mes - 1] + ' ' + anio;
+  var primero = new Date(anio, mes - 1, 1);
+  var diasEnMes = new Date(anio, mes, 0).getDate();
+  var arranque = (primero.getDay() + 6) % 7;
+  var html = '<tr><th>Lu</th><th>Ma</th><th>Mi</th><th>Ju</th><th>Vi</th><th>Sa</th><th>Do</th></tr><tr>';
+  for (var i = 0; i < arranque; i++) html += '<td></td>';
+  for (var d = 1; d <= diasEnMes; d++) {
+    var iso = anio + '-' + String(mes).padStart(2, '0') + '-' + String(d).padStart(2, '0');
+    var libre = estado.dias.indexOf(iso) !== -1;
+    var clases = 'dia' + (libre ? ' libre' : '') + (estado.diaElegido === iso ? ' elegido' : '');
+    html += '<td><button class="' + clases + '" ' + (libre ? 'data-dia="' + iso + '"' : 'disabled') + '>' + d + '</button></td>';
+    if ((arranque + d) % 7 === 0) html += '</tr><tr>';
+  }
+  html += '</tr>';
+  $('tablaCal').innerHTML = html;
+  document.querySelectorAll('#tablaCal [data-dia]').forEach(function (b) {
+    b.addEventListener('click', function () {
+      estado.diaElegido = b.getAttribute('data-dia');
+      pintarCalendario();
+      actualizarNotaEstadia();
+      $('botonFechaSeguir').disabled = false;
+    });
+  });
+  actualizarNotaEstadia();
+}
+
+var NOMBRES_DIA = ['domingo','lunes','martes','miércoles','jueves','viernes','sábado'];
+function actualizarNotaEstadia() {
+  var n = $('notaEstadia');
+  if (!estado.diaElegido) {
+    n.innerHTML = '📅 <span>' + estado.tipo.titulo + ': la unidad queda <b>aprox. ' + estado.duracion + ' día' + (estado.duracion > 1 ? 's' : '') + '</b> en el taller. Elegí el día de ingreso.</span>';
+    return;
+  }
+  var p = estado.diaElegido.split('-').map(Number);
+  var ingreso = new Date(p[0], p[1] - 1, p[2]);
+  var retiro = new Date(p[0], p[1] - 1, p[2] + Math.max(0, estado.duracion - 1));
+  n.innerHTML = '📅 <span>Ingresás el <b>' + NOMBRES_DIA[ingreso.getDay()] + ' ' + fechaBonita(estado.diaElegido) + '</b> y retirás aprox. el <b>' + NOMBRES_DIA[retiro.getDay()] + ' ' + fechaBonita(retiro.getFullYear() + '-' + String(retiro.getMonth() + 1).padStart(2, '0') + '-' + String(retiro.getDate()).padStart(2, '0')) + '</b>.</span>';
+}
+
+$('botonFechaSeguir').addEventListener('click', function () {
+  if (!estado.diaElegido) return;
+  var origen = estado.vehiculo || estado.manual || {};
+  $('conNombre').value = origen.cliente || '';
+  $('conTelefono').value = origen.telefono || '';
+  var r = $('zonaResumen');
+  r.innerHTML = '<div class="etiqueta">Resumen del pedido</div>' +
+    '<div class="dato-fila"><span class="k">Turno</span><span class="v">' + estado.tipo.titulo + '</span></div>' +
+    '<div class="dato-fila"><span class="k">Vehículo</span><span class="v">' + ([origen.producto, origen.vehiculo].filter(Boolean).join(' ') || '—') + (origen.orden ? ' · Orden ' + origen.orden : '') + '</span></div>' +
+    '<div class="dato-fila"><span class="k">Sucursal</span><span class="v">' + estado.sucursal.muestra + '</span></div>' +
+    '<div class="dato-fila"><span class="k">Ingreso</span><span class="v">' + fechaBonita(estado.diaElegido) + '</span></div>' +
+    '<div class="dato-fila"><span class="k">Estadía estimada</span><span class="v">' + estado.duracion + ' día' + (estado.duracion > 1 ? 's' : '') + '</span></div>' +
+    (estado.adjuntos.length ? '<div class="dato-fila"><span class="k">Adjuntos</span><span class="v">' + estado.adjuntos.length + ' archivo' + (estado.adjuntos.length > 1 ? 's' : '') + '</span></div>' : '');
+  irA('s-confirmar');
+});
+
+// ---------- paso 5: enviar ----------
+$('botonEnviar').addEventListener('click', function () {
+  var nombre = $('conNombre').value.trim(), tel = $('conTelefono').value.trim();
+  if (!nombre || !tel) { mostrarError('Completá tu nombre y teléfono.'); return; }
+  var boton = $('botonEnviar');
+  boton.disabled = true; boton.textContent = 'Enviando…';
+  var origen = estado.vehiculo || estado.manual || {};
+  var turno = {
+    sucursal: estado.sucursal.nombre,
+    diaIngreso: estado.diaElegido,
+    duracionDias: estado.duracion,
+    tipo: estado.tipo.clave,
+    orden: origen.orden || '',
+    cliente: nombre,
+    telefono: tel,
+    producto: [origen.producto, origen.vehiculo].filter(Boolean).join(' '),
+    detalle: $('entradaDetalle').value.trim(),
+    adjuntos: estado.adjuntos.map(function (a) { return { nombre: a.nombre, tipo: a.tipo, datos: a.datos }; })
+  };
+  api({ accion: 'crearTurno', turno: turno }).then(function (r) {
+    boton.disabled = false; boton.textContent = 'Enviar pedido de turno';
+    if (!r.ok) { mostrarError(r.error || 'No pudimos registrar el pedido.'); return; }
+    $('tituloExito').textContent = '¡Pedido enviado, ' + nombrePila(nombre) + '!';
+    $('resumenExito').innerHTML = '<div class="etiqueta">Resumen del pedido · N° ' + r.id + '</div>' +
+      '<div class="dato-fila"><span class="k">Turno</span><span class="v">' + estado.tipo.titulo + '</span></div>' +
+      '<div class="dato-fila"><span class="k">Sucursal</span><span class="v">' + estado.sucursal.muestra + '</span></div>' +
+      '<div class="dato-fila"><span class="k">Ingreso</span><span class="v">' + fechaBonita(estado.diaElegido) + '</span></div>' +
+      '<div class="dato-fila"><span class="k">Estado</span><span class="v" style="color:var(--alerta)">Pendiente de confirmación</span></div>';
+    irA('s-exito');
+  }).catch(function (e) {
+    boton.disabled = false; boton.textContent = 'Enviar pedido de turno';
+    mostrarError('No pudimos enviar el pedido: ' + e.message);
+  });
+});
+
+irA('s-buscar');
+</script>
+</body>
+</html>

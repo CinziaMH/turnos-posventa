@@ -20,7 +20,7 @@
   .adm-tabs{display:flex;gap:4px;background:var(--arena);padding:10px 24px 0;border-bottom:1px solid var(--linea);overflow-x:auto}
   .adm-tab{padding:10px 18px;font-size:14px;font-weight:600;color:var(--gris);border-radius:10px 10px 0 0;cursor:pointer;white-space:nowrap;background:none;border:none}
   .adm-tab.activo{background:#fff;color:var(--carbon);border:1px solid var(--linea);border-bottom-color:#fff}
-  .adm-cuerpo{padding:22px 24px 60px;background:#FBF9F4;min-height:calc(100vh - 110px);max-width:1200px;margin:0 auto}
+  .adm-cuerpo{padding:22px 24px 60px;background:#FBF9F4;min-height:calc(100vh - 110px)}
 
   .filtros{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;align-items:center}
   .filtro{font-size:12.5px;font-weight:600;border:1px solid var(--linea);background:#fff;border-radius:20px;padding:6px 14px;color:var(--gris);cursor:pointer}
@@ -95,6 +95,8 @@
   .estado-t.g-no{background:#EFEAE0;color:var(--gris)}
   .estado-t.g-alerta{background:#F7EBD4;color:var(--alerta)}
   .wa-mini{border:none;background:#E5EFE7;color:#1F7A44;border-radius:7px;font-size:11px;font-weight:700;padding:4px 8px;cursor:pointer}
+  .sem-punto{width:16px;height:16px;border-radius:50%;display:inline-block;border:2px solid #fff;box-shadow:0 0 0 1px var(--linea);cursor:pointer;vertical-align:middle;flex-shrink:0}
+  .celda-notas{max-width:240px;overflow:hidden;text-overflow:ellipsis;cursor:pointer}
 
   .panel-wa{background:#fff;border:1px solid var(--linea);border-left:4px solid #25D366;border-radius:14px;padding:16px;margin-top:16px}
   .panel-wa h4{font-size:13px;text-transform:uppercase;letter-spacing:.08em;color:var(--gris);margin-bottom:12px}
@@ -136,11 +138,13 @@
   <div class="adm-cuerpo">
     <div class="cargando" id="cargandoDatos"><div class="rueda"></div> Cargando datos…</div>
 
+    <!-- PEDIDOS -->
     <div id="tab-pedidos" class="oculto">
       <div class="filtros" id="filtrosPedidos"></div>
       <div id="listaPedidos"></div>
     </div>
 
+    <!-- DISPONIBILIDAD -->
     <div id="tab-disponibilidad" class="oculto">
       <div class="adm-grid">
         <div class="panelito">
@@ -174,6 +178,7 @@
       </div>
     </div>
 
+    <!-- CLIENTES -->
     <div id="tab-clientes" class="oculto">
       <div class="filtros">
         <div class="conmutador"><span id="vistaTarjetas" class="activo">Tarjetas</span><span id="vistaTabla">▦ Tabla</span></div>
@@ -198,6 +203,7 @@
       </div>
     </div>
 
+    <!-- CONFIGURACIÓN -->
     <div id="tab-configuracion" class="oculto">
       <div class="panelito">
         <h4>Configuración del sistema</h4>
@@ -212,10 +218,11 @@
 
 <script>
 // ================== CONFIGURACIÓN ==================
+// Pegar acá la URL de la aplicación web de Apps Script (termina en /exec)
 var API_URL = 'https://script.google.com/macros/s/AKfycbwb9hy-cblis2wl_YRUI90dinaFd9hCHzcYgHql0_z2-6IYSjW_C8uKSYvZOayNd6Ed3w/exec';
 // ===================================================
 
-var datos = null;
+var datos = null;   // respuesta de adminDatos
 var clave = sessionStorage.getItem('clave_posventa') || '';
 var mesAdmin = null;
 var filtroPedidos = 'Pendiente';
@@ -262,6 +269,7 @@ function nombrePila(completo) {
   return completo.split(' ')[0];
 }
 
+// ---------- ingreso ----------
 $('botonEntrar').addEventListener('click', entrar);
 $('entradaClave').addEventListener('keydown', function (e) { if (e.key === 'Enter') entrar(); });
 function entrar() {
@@ -296,6 +304,7 @@ function cargar() {
 }
 if (clave) { $('entradaClave').value = clave; entrar(); }
 
+// ---------- pestañas ----------
 var tabActiva = 'pedidos';
 document.querySelectorAll('.adm-tab').forEach(function (b) {
   b.addEventListener('click', function () { mostrarTab(b.getAttribute('data-tab')); });
@@ -320,6 +329,7 @@ function pintarTodo() {
   pintarClientes();
 }
 
+// ---------- PEDIDOS ----------
 function pintarPedidos() {
   var f = $('filtrosPedidos');
   var estados = ['Pendiente', 'Aprobado', 'Completado', 'Rechazado', ''];
@@ -410,6 +420,7 @@ function accionPedido(a, t) {
   });
 }
 
+// ---------- DISPONIBILIDAD ----------
 document.querySelectorAll('#cupoDias span').forEach(function (s) {
   s.addEventListener('click', function () { s.classList.toggle('activo'); });
 });
@@ -505,6 +516,7 @@ function pintarCalAdmin() {
   });
 }
 
+// ---------- CLIENTES ----------
 $('vistaTarjetas').addEventListener('click', function () { vistaClientes = 'tarjetas'; conmutarVista(); pintarClientes(); });
 $('vistaTabla').addEventListener('click', function () { vistaClientes = 'tabla'; conmutarVista(); pintarClientes(); });
 function conmutarVista() {
@@ -588,6 +600,25 @@ var BOTON_PLANTILLA = {
   recordatorio_ingreso: '💬 Recordar ingreso', retiro: '💬 Avisar retiro', control_anual: '💬 Invitar control anual'
 };
 
+var SEM_COLORES = { 'Rojo': '#B3402A', 'Naranja': '#CB591D', 'Amarillo': '#D9A422', 'Verde': '#3E7C4F', '': '#D8D2C4' };
+var SEM_ORDEN = ['', 'Rojo', 'Naranja', 'Amarillo', 'Verde'];
+function puntoSem(v) {
+  return '<span class="sem-punto" title="Estado: ' + (v.semaforo || 'sin estado') + ' — clic para cambiar" style="background:' + (SEM_COLORES[v.semaforo] || SEM_COLORES['']) + '"></span>';
+}
+function cambiarSem(v) {
+  var nuevo = SEM_ORDEN[(SEM_ORDEN.indexOf(v.semaforo || '') + 1) % SEM_ORDEN.length];
+  api({ accion: 'adminVehiculo', orden: v.orden, semaforo: nuevo }).then(function (r) {
+    if (r.ok) { v.semaforo = nuevo; pintarClientes(); avisar('Estado: ' + (nuevo || 'sin estado')); } else avisar(r.error);
+  });
+}
+function editarNotas(v) {
+  var n = prompt('Notas de ' + v.cliente + ':', v.notas || '');
+  if (n === null) return;
+  api({ accion: 'adminVehiculo', orden: v.orden, notas: n }).then(function (r) {
+    if (r.ok) { v.notas = n; pintarClientes(); avisar('Notas guardadas.'); } else avisar(r.error);
+  });
+}
+
 function pintarClientes() {
   if (!datos) return;
   var lista = clientesFiltrados();
@@ -597,23 +628,26 @@ function pintarClientes() {
     lista.slice(0, 60).forEach(function (v) {
       var d = document.createElement('div');
       d.className = 'pedido';
-      d.style.borderLeftColor = v.puedeService6m ? 'var(--alerta)' : (v.enGarantia ? 'var(--ok)' : 'var(--linea)');
+      d.style.borderLeftColor = (v.semaforo && SEM_COLORES[v.semaforo]) || (v.puedeService6m ? 'var(--alerta)' : (v.enGarantia ? 'var(--ok)' : 'var(--linea)'));
       var extras = [];
       if (v.puedeService6m && v.diasParaExtender) extras.push('Le quedan <b>' + v.diasParaExtender + ' días</b> para extender la garantía');
       if (v.service6mFecha) extras.push('Service 6m: ✔ ' + fechaBonita(v.service6mFecha));
       if (v.controlAnualFecha) extras.push('Control anual: ✔ ' + fechaBonita(v.controlAnualFecha));
       d.innerHTML = '<div class="fila-sup"><div>' +
-        '<div class="linea1"><span class="cli">' + v.cliente + '</span>' + chipsCliente(v) + '</div>' +
+        '<div class="linea1">' + puntoSem(v) + '<span class="cli">' + v.cliente + '</span>' + chipsCliente(v) + '</div>' +
         '<div class="meta">' + [[v.producto, v.vehiculo].filter(Boolean).join(' '), v.orden ? 'Orden ' + v.orden : '', v.telefono ? '📞 ' + v.telefono : '',
-          v.fechaEntrega ? 'Entrega ' + fechaBonita(v.fechaEntrega) : ''].filter(Boolean).concat(extras).join(' · ') + '</div></div>' +
-        '<div class="acciones"><button class="btn-mini wa">' + BOTON_PLANTILLA[plantillaSugerida(v)] + '</button></div></div>';
+          v.fechaEntrega ? 'Entrega ' + fechaBonita(v.fechaEntrega) : ''].filter(Boolean).concat(extras).join(' · ') + '</div>' +
+        (v.notas ? '<div class="meta">📝 ' + v.notas + '</div>' : '') + '</div>' +
+        '<div class="acciones"><button class="btn-mini borde acc-notas">📝 Notas</button><button class="btn-mini wa">' + BOTON_PLANTILLA[plantillaSugerida(v)] + '</button></div></div>';
+      d.querySelector('.sem-punto').addEventListener('click', function () { cambiarSem(v); });
+      d.querySelector('.acc-notas').addEventListener('click', function () { editarNotas(v); });
       d.querySelector('.btn-mini.wa').addEventListener('click', function () { abrirPanelWa(v, plantillaSugerida(v), turnoProximoDe(v)); });
       z.appendChild(d);
     });
     if (lista.length > 60) z.innerHTML += '<p style="color:var(--gris);font-size:13px">Mostrando 60 de ' + lista.length + ' — usá el buscador para afinar.</p>';
     if (!lista.length) z.innerHTML = '<p style="color:var(--gris);font-size:14px;padding:20px 0">No hay clientes en esta vista.</p>';
   } else {
-    var html = '<div class="tabla-envoltorio"><table class="planilla"><tr><th>N° Orden</th><th>Cliente</th><th>Producto</th><th>Vehículo</th><th>Año</th><th>F. Compra</th><th>F. Entrega</th><th>Teléfono</th><th>Vendedor</th><th>Garantía</th><th>Serv. 6m</th><th>Ctrl. anual</th><th></th></tr>';
+    var html = '<div class="tabla-envoltorio"><table class="planilla"><tr><th>Estado</th><th>Garantía</th><th>Serv. 6m</th><th>Ctrl. anual</th><th>N° Orden</th><th>Cliente</th><th>Producto</th><th>Vehículo</th><th>Año</th><th>F. Compra</th><th>F. Entrega</th><th>Teléfono</th><th>Vendedor</th><th>Notas</th><th></th></tr>';
     lista.forEach(function (v, i) {
       var gar = v.enGarantia === true ? '<span class="estado-t g-ok">VIGENTE</span>'
         : v.enGarantia === false ? '<span class="estado-t g-no">VENCIDA</span>' : '—';
@@ -623,14 +657,22 @@ function pintarClientes() {
       }
       var s6 = v.service6mFecha ? '<span class="estado-t g-ok">✔ ' + fechaBonita(v.service6mFecha) + '</span>'
         : v.puedeService6m ? '<span class="estado-t g-alerta">PENDIENTE</span>' : '—';
-      html += '<tr><td>' + (v.orden || '—') + '</td><td><b>' + v.cliente + '</b></td><td>' + (v.producto || '—') + '</td><td>' + (v.vehiculo || '—') +
+      html += '<tr><td style="text-align:center"><span class="cont-sem" data-s="' + i + '">' + puntoSem(v) + '</span></td>' +
+        '<td>' + gar + '</td><td>' + s6 + '</td><td>' + (v.controlAnualFecha ? '✔ ' + fechaBonita(v.controlAnualFecha) : '—') + '</td>' +
+        '<td>' + (v.orden || '—') + '</td><td><b>' + v.cliente + '</b></td><td>' + (v.producto || '—') + '</td><td>' + (v.vehiculo || '—') +
         '</td><td>' + (v.anio || '—') + '</td><td>' + fechaBonita(v.fechaCompra) + '</td><td>' + fechaBonita(v.fechaEntrega) +
-        '</td><td>' + (v.telefono || '—') + '</td><td>' + (v.vendedor || '—') + '</td><td>' + gar + '</td><td>' + s6 +
-        '</td><td>' + (v.controlAnualFecha ? '✔ ' + fechaBonita(v.controlAnualFecha) : '—') + '</td>' +
+        '</td><td>' + (v.telefono || '—') + '</td><td>' + (v.vendedor || '—') + '</td>' +
+        '<td class="celda-notas" data-n="' + i + '" title="' + (v.notas ? v.notas.replace(/"/g, '&quot;') + ' — ' : '') + 'clic para editar">' + (v.notas ? '📝 ' + v.notas : '—') + '</td>' +
         '<td><button class="wa-mini" data-i="' + i + '">💬</button></td></tr>';
     });
-    html += '</table></div><p style="font-size:12px;color:var(--gris);margin-top:10px">Mostrando ' + lista.length + ' de ' + datos.vehiculos.length + ' · Garantía y services calculados con la fecha de entrega y el historial.</p>';
+    html += '</table></div><p style="font-size:12px;color:var(--gris);margin-top:10px">Mostrando ' + lista.length + ' de ' + datos.vehiculos.length + ' · Garantía y services calculados con la fecha de entrega y el historial · El punto de color es el estado del cliente: clic para cambiarlo · Clic en las notas para editarlas.</p>';
     z.innerHTML = html;
+    z.querySelectorAll('.cont-sem').forEach(function (b) {
+      b.addEventListener('click', function () { cambiarSem(lista[Number(b.getAttribute('data-s'))]); });
+    });
+    z.querySelectorAll('.celda-notas').forEach(function (b) {
+      b.addEventListener('click', function () { editarNotas(lista[Number(b.getAttribute('data-n'))]); });
+    });
     z.querySelectorAll('.wa-mini').forEach(function (b) {
       b.addEventListener('click', function () {
         var v = lista[Number(b.getAttribute('data-i'))];
@@ -640,6 +682,7 @@ function pintarClientes() {
   }
 }
 
+// ---------- WhatsApp ----------
 function rellenar(plantilla, v, turno) {
   var texto = plantilla || '';
   var diasTexto = (v.diasParaExtender ? 'Te quedan ' + v.diasParaExtender + ' días para aprovecharlo. ' : '');

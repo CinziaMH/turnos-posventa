@@ -99,10 +99,19 @@
   .celda-notas{max-width:240px;overflow:hidden;text-overflow:ellipsis;cursor:pointer}
   .celda-serv{cursor:pointer}
   .celda-serv:hover{background:#F0E9DA !important}
-  .celda-nc{max-width:280px;overflow:hidden;text-overflow:ellipsis}
+  .celda-nc{max-width:280px;overflow:hidden;text-overflow:ellipsis;cursor:pointer}
   .menu-sem{position:fixed;background:#fff;border:1px solid var(--linea);border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,.18);z-index:200;padding:6px;min-width:150px}
   .menu-sem div{display:flex;align-items:center;gap:9px;padding:7px 12px;font-size:13px;cursor:pointer;border-radius:8px;font-weight:600;color:var(--carbon)}
   .menu-sem div:hover{background:var(--arena)}
+  .velo{position:fixed;inset:0;background:rgba(30,25,18,.45);z-index:300;display:flex;align-items:center;justify-content:center;padding:20px}
+  .ventana{background:#fff;border-radius:16px;max-width:720px;width:100%;max-height:80vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,.3)}
+  .ventana .vent-cab{padding:16px 20px;border-bottom:1px solid var(--linea);font-weight:700;font-size:15px;display:flex;justify-content:space-between;align-items:center;gap:10px}
+  .ventana .vent-cuerpo{padding:16px 20px;overflow:auto;font-size:14px;line-height:1.6}
+  .ventana .vent-pie{padding:12px 20px;border-top:1px solid var(--linea);display:flex;gap:8px;justify-content:flex-end}
+  .ventana textarea{width:100%;border:1.5px solid var(--linea);border-radius:10px;padding:10px 12px;font-size:14px;min-height:180px;line-height:1.5;font-family:inherit}
+  .ventana .cerrar-x{background:none;border:none;font-size:18px;cursor:pointer;color:var(--gris)}
+  .nc-item{padding:8px 10px;border-bottom:1px solid #EFEAE0;display:flex;gap:8px;align-items:flex-start}
+  .nc-item:last-child{border-bottom:none}
 
   .panel-wa{background:#fff;border:1px solid var(--linea);border-left:4px solid #25D366;border-radius:14px;padding:16px;margin-top:16px}
   .panel-wa h4{font-size:13px;text-transform:uppercase;letter-spacing:.08em;color:var(--gris);margin-bottom:12px}
@@ -639,12 +648,65 @@ function cambiarSem(v, ev) {
   men.style.top = Math.min(y + 6, window.innerHeight - 230) + 'px';
   menuSem = men;
 }
-function editarNotas(v) {
-  var n = prompt('Notas de ' + v.cliente + ':', v.notas || '');
-  if (n === null) return;
-  api({ accion: 'adminVehiculo', orden: v.orden, notas: n }).then(function (r) {
-    if (r.ok) { v.notas = n; pintarClientes(); avisar('Notas guardadas.'); } else avisar(r.error);
+var veloActual = null;
+function cerrarVentana() { if (veloActual) { veloActual.remove(); veloActual = null; } }
+function abrirVentana(titulo) {
+  cerrarVentana();
+  var velo = document.createElement('div');
+  velo.className = 'velo';
+  velo.addEventListener('click', function (e) { if (e.target === velo) cerrarVentana(); });
+  var vent = document.createElement('div');
+  vent.className = 'ventana';
+  vent.innerHTML = '<div class="vent-cab"><span></span><button class="cerrar-x">✕</button></div><div class="vent-cuerpo"></div><div class="vent-pie"></div>';
+  vent.querySelector('.vent-cab span').textContent = titulo;
+  vent.querySelector('.cerrar-x').addEventListener('click', cerrarVentana);
+  velo.appendChild(vent);
+  document.body.appendChild(velo);
+  veloActual = velo;
+  return vent;
+}
+function verNoConf(v) {
+  if (!v.noConf || !v.noConf.length) return;
+  var vent = abrirVentana('⚠ No conformidades de ' + v.cliente + ' (' + v.noConf.length + ')');
+  var c = vent.querySelector('.vent-cuerpo');
+  v.noConf.forEach(function (t, i) {
+    var abierta = t.indexOf('(Abierta)') !== -1;
+    var cerrada = t.indexOf('(Cerrada)') !== -1;
+    var d = document.createElement('div');
+    d.className = 'nc-item';
+    var texto = t.replace(' (Abierta)', '').replace(' (Cerrada)', '');
+    d.innerHTML = '<span style="color:var(--gris);flex-shrink:0">' + (i + 1) + '.</span><span style="flex:1"></span>' +
+      (abierta ? '<span class="estado-t g-alerta" style="flex-shrink:0">ABIERTA</span>' : (cerrada ? '<span class="estado-t g-no" style="flex-shrink:0">CERRADA</span>' : ''));
+    d.querySelectorAll('span')[1].textContent = texto;
+    c.appendChild(d);
   });
+  var b = document.createElement('button');
+  b.className = 'btn-mini borde'; b.textContent = 'Cerrar';
+  b.addEventListener('click', cerrarVentana);
+  vent.querySelector('.vent-pie').appendChild(b);
+}
+function editarNotas(v) {
+  var vent = abrirVentana('📝 Notas de ' + v.cliente);
+  var ta = document.createElement('textarea');
+  ta.value = v.notas || '';
+  ta.placeholder = 'Escribí acá las notas del cliente…';
+  vent.querySelector('.vent-cuerpo').appendChild(ta);
+  var pie = vent.querySelector('.vent-pie');
+  var bc = document.createElement('button');
+  bc.className = 'btn-mini borde'; bc.textContent = 'Cancelar';
+  bc.addEventListener('click', cerrarVentana);
+  var bg = document.createElement('button');
+  bg.className = 'btn-mini ok'; bg.textContent = '💾 Guardar';
+  bg.addEventListener('click', function () {
+    var n = ta.value;
+    bg.disabled = true; bg.textContent = 'Guardando…';
+    api({ accion: 'adminVehiculo', orden: v.orden, notas: n }).then(function (r) {
+      if (r.ok) { v.notas = n; cerrarVentana(); pintarClientes(); avisar('Notas guardadas.'); }
+      else { bg.disabled = false; bg.textContent = '💾 Guardar'; avisar(r.error); }
+    });
+  });
+  pie.appendChild(bc); pie.appendChild(bg);
+  ta.focus();
 }
 function marcarService(v, tipo) {
   var nombre = tipo === 'anual' ? 'control anual' : 'service de 6 meses';
@@ -685,9 +747,11 @@ function pintarClientes() {
         '<div class="meta">' + [[v.producto, v.vehiculo].filter(Boolean).join(' '), v.orden ? 'Orden ' + v.orden : '', v.telefono ? '📞 ' + v.telefono : '',
           v.fechaEntrega ? 'Entrega ' + fechaBonita(v.fechaEntrega) : ''].filter(Boolean).concat(extras).join(' · ') + '</div>' +
         (v.notas ? '<div class="meta">📝 ' + v.notas + '</div>' : '') +
-        (v.noConf && v.noConf.length ? '<div class="meta" style="color:var(--rojo)">⚠ No conformidad: ' + v.noConf.join(' · ') + '</div>' : '') + '</div>' +
+        (v.noConf && v.noConf.length ? '<div class="meta ver-nc" style="color:var(--rojo);cursor:pointer" title="Clic para ver el detalle completo">⚠ No conformidad (' + v.noConf.length + '): ' + v.noConf.join(' · ') + '</div>' : '') + '</div>' +
         '<div class="acciones"><button class="btn-mini borde acc-notas">📝 Notas</button><button class="btn-mini wa">' + BOTON_PLANTILLA[plantillaSugerida(v)] + '</button></div></div>';
       d.querySelector('.sem-punto').addEventListener('click', function (e) { cambiarSem(v, e); });
+      var vn = d.querySelector('.ver-nc');
+      if (vn) vn.addEventListener('click', function () { verNoConf(v); });
       d.querySelector('.acc-notas').addEventListener('click', function () { editarNotas(v); });
       d.querySelector('.btn-mini.wa').addEventListener('click', function () { abrirPanelWa(v, plantillaSugerida(v), turnoProximoDe(v)); });
       z.appendChild(d);
@@ -712,7 +776,7 @@ function pintarClientes() {
         '<td>' + (v.orden || '—') + '</td><td><b>' + v.cliente + '</b></td><td>' + (v.producto || '—') + '</td><td>' + (v.vehiculo || '—') +
         '</td><td>' + (v.anio || '—') + '</td><td>' + fechaBonita(v.fechaCompra) + '</td><td>' + fechaBonita(v.fechaEntrega) +
         '</td><td>' + (v.telefono || '—') + '</td><td>' + (v.vendedor || '—') + '</td>' +
-        '<td class="celda-nc" title="' + (v.noConf && v.noConf.length ? v.noConf.join('\n').replace(/"/g, '&quot;') : '') + '">' +
+        '<td class="celda-nc" data-nc="' + i + '" title="Clic para ver el detalle completo">' +
         (v.noConf && v.noConf.length ? '<span class="estado-t ' + (v.noConf.join(' ').indexOf('(Abierta)') !== -1 ? 'g-alerta' : 'g-no') + '">⚠ ' + v.noConf.length + '</span> ' + v.noConf.join(' · ') : '—') + '</td>' +
         '<td class="celda-notas" data-n="' + i + '" title="' + (v.notas ? v.notas.replace(/"/g, '&quot;') + ' — ' : '') + 'clic para editar">' + (v.notas ? '📝 ' + v.notas : '—') + '</td>' +
         '<td><button class="wa-mini" data-i="' + i + '">💬</button></td></tr>';
@@ -727,6 +791,9 @@ function pintarClientes() {
     });
     z.querySelectorAll('.celda-serv').forEach(function (b) {
       b.addEventListener('click', function () { marcarService(lista[Number(b.getAttribute('data-v'))], b.getAttribute('data-t')); });
+    });
+    z.querySelectorAll('.celda-nc').forEach(function (b) {
+      b.addEventListener('click', function () { verNoConf(lista[Number(b.getAttribute('data-nc'))]); });
     });
     z.querySelectorAll('.wa-mini').forEach(function (b) {
       b.addEventListener('click', function () {
